@@ -58,12 +58,29 @@ export class GithubService {
     );
     const fileCount = files.length;
 
+    const ymlFile = files.find((file) => file.path?.endWith('.yml'));
+    let ymlContent: string | null = null;
+
+    if (ymlFile) {
+      const { data: fileData } = await this.octokit.rest.repos.getContent({
+        owner: userName,
+        repo: repoName,
+        path: ymlFile.path!,
+      });
+
+      if ('content' in fileData && fileData.content) {
+        const buff = Buffer.from(fileData.content, 'base64');
+        ymlContent = buff.toString('utf-8');
+      }
+    }
+
     return {
       name: repo.name,
       size: repo.size,
       owner: repo.owner.login,
       isPrivate: repo.private,
       fileCount,
+      ymlContent,
     };
   }
 }
