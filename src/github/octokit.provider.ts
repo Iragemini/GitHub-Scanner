@@ -18,3 +18,7 @@ export type OctokitInstance = ReturnType<typeof OctokitProvider.useFactory>;
 export type GitHubRepo = Awaited<
   ReturnType<OctokitInstance['repos']['listForAuthenticatedUser']>
 >['data'][number];
+
+export type TreeItem = Awaited<
+  ReturnType<OctokitInstance['git']['getTree']>
+>['data']['tree'][number];

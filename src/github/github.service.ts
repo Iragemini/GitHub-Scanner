@@ -1,5 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { OCTOKIT, OctokitInstance, GitHubRepo } from './octokit.provider';
+import {
+  OCTOKIT,
+  OctokitInstance,
+  GitHubRepo,
+  TreeItem,
+} from './octokit.provider';
 import { GITHUB_IDENTITY, GitHubIdentity } from './github-identity.provider';
 
 @Injectable()
@@ -42,11 +47,23 @@ export class GithubService {
       repo: repoName,
     });
 
+    const tree = await this.octokit.rest.git.getTree({
+      owner: userName,
+      repo: repoName,
+      tree_sha: repo.default_branch,
+      recursive: 'true',
+    });
+    const files = (tree.data.tree as TreeItem[]).filter(
+      (item: TreeItem) => item.type === 'blob',
+    );
+    const fileCount = files.length;
+
     return {
       name: repo.name,
       size: repo.size,
       owner: repo.owner.login,
       isPrivate: repo.private,
+      fileCount,
     };
   }
 }
