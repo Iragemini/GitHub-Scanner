@@ -12,3 +12,9 @@ export const OctokitProvider: Provider = {
   },
   inject: [ConfigService],
 };
+
+export type OctokitInstance = ReturnType<typeof OctokitProvider.useFactory>;
+
+export type GitHubRepo = Awaited<
+  ReturnType<OctokitInstance['repos']['listForAuthenticatedUser']>
+>['data'][number];
