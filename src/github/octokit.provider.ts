@@ -14,11 +14,22 @@ export const OctokitProvider: Provider = {
 };
 
 export type OctokitInstance = ReturnType<typeof OctokitProvider.useFactory>;
+export type ApiResponseItem<
+  T extends (...args: any[]) => any,
+  U extends keyof Awaited<ReturnType<T>>,
+> = Awaited<ReturnType<T>>[U][number];
 
-export type GitHubRepo = Awaited<
-  ReturnType<OctokitInstance['repos']['listForAuthenticatedUser']>
->['data'][number];
+export type GitHubRepo = ApiResponseItem<
+  OctokitInstance['repos']['listForAuthenticatedUser'],
+  'data'
+>;
 
-export type TreeItem = Awaited<
-  ReturnType<OctokitInstance['git']['getTree']>
->['data']['tree'][number];
+export type TreeItem = ApiResponseItem<
+  OctokitInstance['git']['getTree'],
+  'data'
+>;
+
+export type GitHubWebhook = ApiResponseItem<
+  OctokitInstance['repos']['listWebhooks'],
+  'data'
+>;

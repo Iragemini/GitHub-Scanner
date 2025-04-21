@@ -4,6 +4,7 @@ import {
   OctokitInstance,
   GitHubRepo,
   TreeItem,
+  GitHubWebhook,
 } from './octokit.provider';
 import { GITHUB_IDENTITY, GitHubIdentity } from './github-identity.provider';
 
@@ -74,6 +75,19 @@ export class GithubService {
       }
     }
 
+    const { data: hooks } = await this.octokit.rest.repos.listWebhooks({
+      owner: userName,
+      repo: repoName,
+    });
+
+    const activeHooks = hooks
+      .filter((hook: GitHubWebhook) => hook.active)
+      .map((hook: GitHubWebhook) => ({
+        id: hook.id,
+        url: hook.config?.url,
+        events: hook.events,
+      }));
+
     return {
       name: repo.name,
       size: repo.size,
@@ -81,6 +95,7 @@ export class GithubService {
       isPrivate: repo.private,
       fileCount,
       ymlContent,
+      activeHooks,
     };
   }
 }
