@@ -7,6 +7,7 @@ A NestJS application that scans GitHub repositories and provides detailed inform
 - List authenticated user's repositories
 - Get detailed information about specific repositories
 - Concurrent repository scanning with a limit of 2 operations
+- Configurable log levels for better debugging
 
 ## API Endpoints
 
@@ -132,6 +133,11 @@ npm run test
 # e2e tests
 npm run test:e2e
 ```
+
+## Deployment
+
+The application is deployed to Heroku and available at:
+[https://github-scanner-36faf018c358.herokuapp.com/](https://github-scanner-36faf018c358.herokuapp.com/)
 
 
 ## License
