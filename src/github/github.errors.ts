@@ -37,4 +37,4 @@ export class GitHubForbiddenError extends HttpException {
       HttpStatus.FORBIDDEN,
     );
   }
-} 
+}
