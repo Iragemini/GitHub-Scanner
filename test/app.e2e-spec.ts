@@ -28,30 +28,41 @@ describe('AppController (e2e)', () => {
       .useValue({
         rest: {
           users: {
-            getAuthenticated: jest.fn<() => Promise<{ data: { login: string; id: number; name: string } }>>()
+            getAuthenticated: jest
+              .fn<
+                () => Promise<{
+                  data: { login: string; id: number; name: string };
+                }>
+              >()
               .mockResolvedValue({
-                data: { login: 'test-user', id: 123, name: 'Test User' }
-              })
-          }
-        }
+                data: { login: 'test-user', id: 123, name: 'Test User' },
+              }),
+          },
+        },
       })
       .overrideProvider(GITHUB_IDENTITY)
       .useValue({ accessToken: 'test-token', login: 'test-user' })
       .overrideProvider(GithubService)
       .useValue({
-        getAuthenticatedUserRepos: jest.fn<() => Promise<Array<{ name: string; size: number; owner: string }>>>()
+        getAuthenticatedUserRepos: jest
+          .fn<
+            () => Promise<Array<{ name: string; size: number; owner: string }>>
+          >()
           .mockResolvedValue([
-            { name: 'repo-a', size: 100, owner: 'test-user' }
+            { name: 'repo-a', size: 100, owner: 'test-user' },
           ]),
-        getRepoDetails: jest.fn<(repoName: string) => Promise<{
-          name: string;
-          size: number;
-          owner: string;
-          isPrivate: boolean;
-          fileCount: number;
-          ymlContent: string;
-          activeHooks: Array<{ id: number; url: string; events: string[] }>;
-        }>>()
+        getRepoDetails: jest
+          .fn<
+            (repoName: string) => Promise<{
+              name: string;
+              size: number;
+              owner: string;
+              isPrivate: boolean;
+              fileCount: number;
+              ymlContent: string;
+              activeHooks: Array<{ id: number; url: string; events: string[] }>;
+            }>
+          >()
           .mockResolvedValue({
             name: 'repo-a',
             size: 100,
@@ -59,8 +70,8 @@ describe('AppController (e2e)', () => {
             isPrivate: false,
             fileCount: 10,
             ymlContent: 'test: yaml',
-            activeHooks: []
-          })
+            activeHooks: [],
+          }),
       })
       .compile();
 
@@ -89,7 +100,7 @@ describe('AppController (e2e)', () => {
         .expect(200);
 
       expect(response.body).toEqual([
-        { name: 'repo-a', size: 100, owner: 'test-user' }
+        { name: 'repo-a', size: 100, owner: 'test-user' },
       ]);
       expect(githubService.getAuthenticatedUserRepos).toHaveBeenCalled();
     });
@@ -106,7 +117,7 @@ describe('AppController (e2e)', () => {
         isPrivate: false,
         fileCount: 10,
         ymlContent: 'test: yaml',
-        activeHooks: []
+        activeHooks: [],
       });
       expect(githubService.getRepoDetails).toHaveBeenCalledWith('repo-a');
     });
@@ -119,6 +130,38 @@ describe('AppController (e2e)', () => {
       expect(githubService.getRepoDetails).toHaveBeenCalledTimes(2);
       expect(githubService.getRepoDetails).toHaveBeenCalledWith('repo-a');
       expect(githubService.getRepoDetails).toHaveBeenCalledWith('repo-b');
+    });
+
+    it('GET /repos/batch should limit concurrent operations to 2', async () => {
+      const activeOperations = new Set<string>();
+      let maxConcurrent = 0;
+
+      (githubService.getRepoDetails as jest.Mock).mockImplementation(
+        async (repoName: string) => {
+          activeOperations.add(repoName);
+          maxConcurrent = Math.max(maxConcurrent, activeOperations.size);
+
+          await new Promise((resolve) => setTimeout(resolve, 100));
+
+          activeOperations.delete(repoName);
+          return {
+            name: repoName,
+            size: 100,
+            owner: 'test-user',
+            isPrivate: false,
+            fileCount: 10,
+            ymlContent: 'test: yaml',
+            activeHooks: [],
+          };
+        },
+      );
+
+      await request(app.getHttpServer())
+        .get('/repos/batch?repos=repo-a,repo-b,repo-c,repo-d')
+        .expect(200);
+
+      expect(maxConcurrent).toBeLessThanOrEqual(2);
+      expect(githubService.getRepoDetails).toHaveBeenCalledTimes(4);
     });
   });
 });
