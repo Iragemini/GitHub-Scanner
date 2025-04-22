@@ -7,6 +7,11 @@ import {
   GitHubWebhook,
 } from './octokit.provider.js';
 import { GITHUB_IDENTITY, GitHubIdentity } from './github-identity.provider.js';
+import {
+  GitHubRepositoryNotFoundError,
+  GitHubUnauthorizedError,
+  GitHubForbiddenError,
+} from './github.errors.js';
 
 @Injectable()
 export class GithubService {
@@ -23,6 +28,25 @@ export class GithubService {
     };
   }
 
+  private handleGitHubError(error: any, repoName?: string) {
+    Logger.error(`GitHub API error: ${error.message}`);
+    
+    if (error.status === 404) {
+      throw new GitHubRepositoryNotFoundError(repoName || 'unknown');
+    }
+    
+    if (error.status === 401) {
+      throw new GitHubUnauthorizedError();
+    }
+    
+    if (error.status === 403) {
+      throw new GitHubForbiddenError();
+    }
+    
+    // For any other error, rethrow it
+    throw error;
+  }
+
   async getAuthenticatedUserRepos(options?: {
     visibility?: 'all' | 'public' | 'private';
     affiliation?: string;
@@ -32,12 +56,16 @@ export class GithubService {
     per_page?: number;
     page?: number;
   }) {
-    const { data } = await this.octokit.repos.listForAuthenticatedUser({
-      per_page: 100,
-      ...options,
-    });
+    try {
+      const { data } = await this.octokit.repos.listForAuthenticatedUser({
+        per_page: 100,
+        ...options,
+      });
 
-    return data.map(this.mapRepoInfo);
+      return data.map(this.mapRepoInfo);
+    } catch (error) {
+      this.handleGitHubError(error);
+    }
   }
 
   async getRepoDetails(repoName: string) {
@@ -110,10 +138,7 @@ export class GithubService {
         activeHooks,
       };
     } catch (error) {
-      Logger.error(
-        `Failed to get details for repository ${repoName}: ${error.message}`,
-      );
-      throw error;
+      this.handleGitHubError(error, repoName);
     }
   }
 }
