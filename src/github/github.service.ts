@@ -1,0 +1,101 @@
+import { Inject, Injectable } from '@nestjs/common';
+import {
+  OCTOKIT,
+  OctokitInstance,
+  GitHubRepo,
+  TreeItem,
+  GitHubWebhook,
+} from './octokit.provider.js';
+import { GITHUB_IDENTITY, GitHubIdentity } from './github-identity.provider.js';
+
+@Injectable()
+export class GithubService {
+  constructor(
+    @Inject(OCTOKIT) private readonly octokit: OctokitInstance,
+    @Inject(GITHUB_IDENTITY) private readonly identity: GitHubIdentity,
+  ) {}
+
+  private mapRepoInfo(repo: GitHubRepo) {
+    return {
+      name: repo.name,
+      size: repo.size,
+      owner: repo.owner.login,
+    };
+  }
+
+  async getAuthenticatedUserRepos(options?: {
+    visibility?: 'all' | 'public' | 'private';
+    affiliation?: string;
+    type?: 'all' | 'owner' | 'public' | 'private' | 'member';
+    sort?: 'created' | 'updated' | 'pushed' | 'full_name';
+    direction?: 'asc' | 'desc';
+    per_page?: number;
+    page?: number;
+  }) {
+    const { data } = await this.octokit.repos.listForAuthenticatedUser({
+      per_page: 100,
+      ...options,
+    });
+
+    return data.map(this.mapRepoInfo);
+  }
+
+  async getRepoDetails(repoName: string) {
+    const userName = this.identity.login;
+
+    const { data: repo } = await this.octokit.rest.repos.get({
+      owner: userName,
+      repo: repoName,
+    });
+
+    const tree = await this.octokit.rest.git.getTree({
+      owner: userName,
+      repo: repoName,
+      tree_sha: repo.default_branch,
+      recursive: 'true',
+    });
+    const files = (tree.data.tree as TreeItem[]).filter(
+      (item: TreeItem) => item.type === 'blob',
+    );
+    const fileCount = files.length;
+
+    const ymlFile = files.find((file) => file.path?.endsWith('.yml'));
+    let ymlContent: string | null = null;
+
+    if (ymlFile) {
+      const { data: fileData } = await this.octokit.rest.repos.getContent({
+        owner: userName,
+        repo: repoName,
+        path: ymlFile.path!,
+      });
+
+      if ('content' in fileData && fileData.content) {
+        const buff = Buffer.from(fileData.content, 'base64');
+        ymlContent = buff.toString('utf-8');
+      }
+    }
+
+    const { data: hooks } = await this.octokit.rest.repos.listWebhooks({
+      owner: userName,
+      repo: repoName,
+    });
+
+    const activeHooks = hooks
+      .filter((hook: GitHubWebhook) => hook.active)
+      .map((hook: GitHubWebhook) => ({
+        id: hook.id,
+        url: hook.config?.url,
+        events: hook.events,
+      }));
+
+    return {
+      name: repo.name,
+      size: repo.size,
+      owner: repo.owner.login,
+      isPrivate: repo.private,
+      fileCount,
+      ymlContent,
+      activeHooks,
+    };
+  }
+}
