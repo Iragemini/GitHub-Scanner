@@ -5,8 +5,8 @@ import {
   GitHubRepo,
   TreeItem,
   GitHubWebhook,
-} from './octokit.provider';
-import { GITHUB_IDENTITY, GitHubIdentity } from './github-identity.provider';
+} from './octokit.provider.js';
+import { GITHUB_IDENTITY, GitHubIdentity } from './github-identity.provider.js';
 
 @Injectable()
 export class GithubService {
@@ -59,7 +59,7 @@ export class GithubService {
     );
     const fileCount = files.length;
 
-    const ymlFile = files.find((file) => file.path?.endWith('.yml'));
+    const ymlFile = files.find((file) => file.path?.endsWith('.yml'));
     let ymlContent: string | null = null;
 
     if (ymlFile) {

@@ -25,6 +25,6 @@ export const GitHubIdentityProvider: Provider = {
       id,
       name,
     };
-    inject: [ConfigService];
   },
+  inject: [ConfigService],
 };
