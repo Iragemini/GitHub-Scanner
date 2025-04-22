@@ -17,6 +17,7 @@ async function bootstrap() {
   const logLevel = configService.get<string>('LOG_LEVEL') ?? 'error';
 
   app.useLogger(levelMap[logLevel] ?? ['error']);
+  app.enableCors();
 
   await app.listen(process.env.PORT ?? 3000);
 }
