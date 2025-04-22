@@ -17,12 +17,31 @@ export class ReposController {
 
   @Get('batch')
   async getReposBatch(@Query('repos') repos: string) {
-    const repoList = repos.split(',');
+    const repoList = repos.split(',').filter((repo) => !!repo);
     const limit = pLimit(2);
     const promises = repoList.map((repo) =>
       limit(() => this.getRepoDetails(repo)),
     );
 
-    return Promise.all(promises);
+    const response = await Promise.allSettled(promises);
+
+    const fulfilled = response
+      .filter(
+        (item): item is PromiseFulfilledResult<any> =>
+          item.status === 'fulfilled',
+      )
+      .map((item) => item.value);
+
+    const rejected = response
+      .filter(
+        (item): item is PromiseRejectedResult => item.status === 'rejected',
+      )
+      .map((item) => item.reason);
+
+    if (rejected.length) {
+      console.log('rejected:', JSON.stringify(rejected));
+    }
+
+    return fulfilled;
   }
 }
