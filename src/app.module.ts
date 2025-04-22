@@ -7,7 +7,9 @@ import { ReposController } from './repos/repos.controller.js';
 
 @Module({
   imports: [
-    ConfigModule.forRoot(),
+    ConfigModule.forRoot({
+      isGlobal: true,
+    }),
     GithubModule,
   ],
   controllers: [AppController, ReposController],

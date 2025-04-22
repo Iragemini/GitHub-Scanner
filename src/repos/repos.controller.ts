@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
+import { Controller, Get, Param, Query, Logger } from '@nestjs/common';
 import { GithubService } from '../github/github.service.js';
 import pLimit from 'p-limit';
 
@@ -39,7 +39,10 @@ export class ReposController {
       .map((item) => item.reason);
 
     if (rejected.length) {
-      console.log('rejected:', JSON.stringify(rejected));
+      Logger.warn(
+        `Rejected repos: ${JSON.stringify(rejected)}`,
+        ReposController.name,
+      );
     }
 
     return fulfilled;
