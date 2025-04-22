@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import {
   OCTOKIT,
   OctokitInstance,
@@ -43,59 +43,77 @@ export class GithubService {
   async getRepoDetails(repoName: string) {
     const userName = this.identity.login;
 
-    const { data: repo } = await this.octokit.rest.repos.get({
-      owner: userName,
-      repo: repoName,
-    });
+    try {
+      const [repoResponse, hooksResponse] = await Promise.all([
+        this.octokit.rest.repos.get({
+          owner: userName,
+          repo: repoName,
+        }),
+        this.octokit.rest.repos.listWebhooks({
+          owner: userName,
+          repo: repoName,
+        }),
+      ]);
 
-    const tree = await this.octokit.rest.git.getTree({
-      owner: userName,
-      repo: repoName,
-      tree_sha: repo.default_branch,
-      recursive: 'true',
-    });
-    const files = (tree.data.tree as TreeItem[]).filter(
-      (item: TreeItem) => item.type === 'blob',
-    );
-    const fileCount = files.length;
+      const repo = repoResponse.data;
 
-    const ymlFile = files.find((file) => file.path?.endsWith('.yml'));
-    let ymlContent: string | null = null;
-
-    if (ymlFile) {
-      const { data: fileData } = await this.octokit.rest.repos.getContent({
+      const treeResponse = await this.octokit.rest.git.getTree({
         owner: userName,
         repo: repoName,
-        path: ymlFile.path!,
+        tree_sha: repo.default_branch,
+        recursive: 'true',
       });
 
-      if ('content' in fileData && fileData.content) {
-        const buff = Buffer.from(fileData.content, 'base64');
-        ymlContent = buff.toString('utf-8');
+      const files = treeResponse.data.tree.filter(
+        (item): item is TreeItem & { path: string } =>
+          item.type === 'blob' && item.path !== undefined,
+      );
+      const fileCount = files.length;
+
+      const ymlFile = files.find((file) => file.path.endsWith('.yml'));
+      let ymlContent: string | null = null;
+
+      if (ymlFile) {
+        try {
+          const { data: fileData } = await this.octokit.rest.repos.getContent({
+            owner: userName,
+            repo: repoName,
+            path: ymlFile.path,
+          });
+
+          if ('content' in fileData && fileData.content) {
+            const buff = Buffer.from(fileData.content, 'base64');
+            ymlContent = buff.toString('utf-8');
+          }
+        } catch (error) {
+          Logger.warn(
+            `Failed to fetch YAML content for ${repoName}: ${error.message}`,
+          );
+        }
       }
+
+      const activeHooks = hooksResponse.data
+        .filter((hook: GitHubWebhook) => hook.active)
+        .map((hook: GitHubWebhook) => ({
+          id: hook.id,
+          url: hook.config?.url,
+          events: hook.events,
+        }));
+
+      return {
+        name: repo.name,
+        size: repo.size,
+        owner: repo.owner.login,
+        isPrivate: repo.private,
+        fileCount,
+        ymlContent,
+        activeHooks,
+      };
+    } catch (error) {
+      Logger.error(
+        `Failed to get details for repository ${repoName}: ${error.message}`,
+      );
+      throw error;
     }
-
-    const { data: hooks } = await this.octokit.rest.repos.listWebhooks({
-      owner: userName,
-      repo: repoName,
-    });
-
-    const activeHooks = hooks
-      .filter((hook: GitHubWebhook) => hook.active)
-      .map((hook: GitHubWebhook) => ({
-        id: hook.id,
-        url: hook.config?.url,
-        events: hook.events,
-      }));
-
-    return {
-      name: repo.name,
-      size: repo.size,
-      owner: repo.owner.login,
-      isPrivate: repo.private,
-      fileCount,
-      ymlContent,
-      activeHooks,
-    };
   }
 }
