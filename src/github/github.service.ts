@@ -22,6 +22,7 @@ export class GithubService {
 
   private mapRepoInfo(repo: GitHubRepo) {
     return {
+      id: repo.id,
       name: repo.name,
       size: repo.size,
       owner: repo.owner.login,
@@ -30,19 +31,19 @@ export class GithubService {
 
   private handleGitHubError(error: any, repoName?: string) {
     Logger.error(`GitHub API error: ${error.message}`);
-    
+
     if (error.status === 404) {
       throw new GitHubRepositoryNotFoundError(repoName || 'unknown');
     }
-    
+
     if (error.status === 401) {
       throw new GitHubUnauthorizedError();
     }
-    
+
     if (error.status === 403) {
       throw new GitHubForbiddenError();
     }
-    
+
     // For any other error, rethrow it
     throw error;
   }
