@@ -18,6 +18,7 @@ Lists all repositories for the authenticated user.
 ```json
 [
   {
+    "id": 1234,
     "name": "repo-name",
     "size": 100,
     "owner": "username"
