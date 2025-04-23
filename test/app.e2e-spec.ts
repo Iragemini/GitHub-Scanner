@@ -46,10 +46,10 @@ describe('AppController (e2e)', () => {
       .useValue({
         getAuthenticatedUserRepos: jest
           .fn<
-            () => Promise<Array<{ name: string; size: number; owner: string }>>
+            () => Promise<Array<{ id: Number; name: string; size: number; owner: string }>>
           >()
           .mockResolvedValue([
-            { name: 'repo-a', size: 100, owner: 'test-user' },
+            { id: 1234, name: 'repo-a', size: 100, owner: 'test-user' },
           ]),
         getRepoDetails: jest
           .fn<
@@ -100,7 +100,7 @@ describe('AppController (e2e)', () => {
         .expect(200);
 
       expect(response.body).toEqual([
-        { name: 'repo-a', size: 100, owner: 'test-user' },
+        { id: 1234, name: 'repo-a', size: 100, owner: 'test-user' },
       ]);
       expect(githubService.getAuthenticatedUserRepos).toHaveBeenCalled();
     });

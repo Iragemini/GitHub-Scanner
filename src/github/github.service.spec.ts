@@ -11,7 +11,7 @@ describe('GithubService', () => {
   let mockedOctokit: {
     repos: {
       listForAuthenticatedUser: MockResponse<
-        { name: string; size: number; owner: { login: string } }[]
+        { id: number; name: string; size: number; owner: { login: string } }[]
       >;
     };
     rest: {
@@ -20,7 +20,7 @@ describe('GithubService', () => {
       };
       repos: {
         listForAuthenticatedUser: MockResponse<
-          { name: string; size: number; owner: { login: string } }[]
+          { id: number; name: string; size: number; owner: { login: string } }[]
         >;
         get: MockResponse<{
           name: string;
@@ -52,13 +52,13 @@ describe('GithubService', () => {
         listForAuthenticatedUser: jest
           .fn<
             (...args: any[]) => Promise<{
-              data: { name: string; size: number; owner: { login: string } }[];
+              data: { id: number; name: string; size: number; owner: { login: string } }[];
             }>
           >()
           .mockImplementation(() =>
             Promise.resolve({
               data: [
-                { name: 'repo-a', size: 100, owner: { login: 'test-user' } },
+                { id: 1234, name: 'repo-a', size: 100, owner: { login: 'test-user' } },
               ],
             }),
           ),
@@ -76,6 +76,7 @@ describe('GithubService', () => {
             .fn<
               (...args: any[]) => Promise<{
                 data: {
+                  id: number,
                   name: string;
                   size: number;
                   owner: { login: string };
@@ -85,7 +86,7 @@ describe('GithubService', () => {
             .mockImplementation(() =>
               Promise.resolve({
                 data: [
-                  { name: 'repo-a', size: 100, owner: { login: 'test-user' } },
+                  { id: 1234, name: 'repo-a', size: 100, owner: { login: 'test-user' } },
                 ],
               }),
             ),
@@ -191,6 +192,7 @@ describe('GithubService', () => {
     const repos = await service.getAuthenticatedUserRepos();
     expect(repos).toEqual([
       {
+        id: 1234,
         name: 'repo-a',
         size: 100,
         owner: 'test-user',
