@@ -135,10 +135,33 @@ npm run test
 npm run test:e2e
 ```
 
-## Deployment
 
-The application is deployed to Heroku and available at:
-[https://github-scanner-36faf018c358.herokuapp.com/](https://github-scanner-36faf018c358.herokuapp.com/)
+## Deployment with Docker
+
+You can run the GitHub Scanner using Docker:
+
+### Build and run with Docker
+
+```bash
+docker build -t github-scanner .
+docker run -p 3001:3000 github-scanner
+```
+
+> The app will be accessible at http://localhost:3001
+
+### Run with Docker Compose
+
+```bash
+npm run docker:start
+```
+
+To stop service:
+
+```bash
+npm run docker:stop
+```
+
+> The app will be accessible at http://localhost:3001
 
 
 ## License

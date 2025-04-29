@@ -1,0 +1,10 @@
+
+services:
+  github-scanner:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: github-scanner
+    restart: unless-stopped
+    ports:
+      - "3001:3000"

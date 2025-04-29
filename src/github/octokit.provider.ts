@@ -25,11 +25,11 @@ export type GitHubRepo = ApiResponseItem<
 >;
 
 export type TreeItem = ApiResponseItem<
-  OctokitInstance['git']['getTree'],
+  OctokitInstance['rest']['git']['getTree'],
   'data'
 >;
 
 export type GitHubWebhook = ApiResponseItem<
-  OctokitInstance['repos']['listWebhooks'],
+  OctokitInstance['rest']['repos']['listWebhooks'],
   'data'
 >;
